@@ -2,7 +2,6 @@
 from datetime import datetime
 
 import torch
-from torch._C import R
 import numpy as np
 
 def mask_fill(
@@ -41,11 +40,11 @@ class RandomErasing():
             cut_width = int(self.scale[0] * width)
             cut_height = int(self.scale[1] * height)
 
-            x_axis = np.random.randint(0, width-cut_width+1)
-            y_axis = np.random.randint(0, height-cut_height+1)
+            x_axis = np.random.randint(0, width-cut_width)
+            y_axis = np.random.randint(0, height-cut_height)
 
-            assert x_axis+cut_width+1 <= width
-            assert y_axis+cut_height+1 <= height
+            assert x_axis+cut_width <= width
+            assert y_axis+cut_height <= height
             if batch != None:
                 x[:, x_axis: x_axis+cut_width+1, y_axis: y_axis+cut_height+1] = 0
             else:

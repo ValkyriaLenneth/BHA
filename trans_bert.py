@@ -28,7 +28,7 @@ class BertModel4Trans(BertPreTrainedModel):
         for layer, heads in heads_to_prune.items():
             self.encoder.layer[layer].attention.prune_heads(heads)
 
-    def forward(self, input_ids, trans_layer=-1, attention_mask=None, token_type_ids=None, position_ids=None, head_mask=None, transform=None):
+    def forward(self, input_ids, trans_layer=-1, attention_mask=None, token_type_ids=None, position_ids=None, head_mask=None, transform=None, train=True):
 
         
         if attention_mask is None:
@@ -60,7 +60,7 @@ class BertModel4Trans(BertPreTrainedModel):
 
         encoder_outputs = self.encoder(
             embedding_output, attention_mask=extended_attention_mask, head_mask=head_mask,
-            trans_layer=trans_layer, transform=transform)
+            trans_layer=trans_layer, transform=transform, train=train)
 
         sequence_output = encoder_outputs[0]
         pooled_output = self.pooler(sequence_output)
@@ -79,7 +79,7 @@ class BertEncoder4Trans(nn.Module):
         self.layer = nn.ModuleList([BertLayer(config)
                                     for _ in range(config.num_hidden_layers)])
 
-    def forward(self, hidden_states,  attention_mask=None, head_mask=None, transform=None,trans_layer=-1,):
+    def forward(self, hidden_states,  attention_mask=None, head_mask=None, transform=None,trans_layer=-1, train=True):
         all_hidden_states = ()
         all_attentions = ()
 
@@ -88,7 +88,11 @@ class BertEncoder4Trans(nn.Module):
 
         for i, layer_module in enumerate(self.layer):
             if i == trans_layer:
-                hidden_states = transform(hidden_states)
+                if train:
+                    hidden_states = transform(hidden_states)
+                else:
+                    pass
+                    # print("Eval and not trans")
 
             if self.output_hidden_states:
                 all_hidden_states = all_hidden_states + (hidden_states,)
@@ -126,9 +130,9 @@ class TransBert(nn.Module):
             self.bert = BertModel.from_pretrained('bert-base-uncased')
 
 
-    def forward(self, x, trans_layer=-1, attention_mask=None, token_type_ids=None, position_ids=None, head_mask=None ):
+    def forward(self, x, trans_layer=-1, attention_mask=None, token_type_ids=None, position_ids=None, head_mask=None, train=True):
         if self.trans_option == True:
-            all_hidden, pooler = self.bert(x, trans_layer, attention_mask=attention_mask, token_type_ids=token_type_ids, position_ids=position_ids, head_mask=head_mask, transform=self.transform)
+            all_hidden, pooler = self.bert(x, trans_layer, attention_mask=attention_mask, token_type_ids=token_type_ids, position_ids=position_ids, head_mask=head_mask, transform=self.transform, train=train)
         else: 
             all_hidden, pooler = self.bert(x, attention_mask=attention_mask, token_type_ids=token_type_ids, position_ids=position_ids, head_mask=head_mask,)
 

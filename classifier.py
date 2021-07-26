@@ -171,7 +171,7 @@ class Classifier(pl.LightningModule):
 
         return sample
 
-    def forward(self, tokens, lengths):
+    def forward(self, tokens, lengths, train=True):
         """ Usual pytorch forward function.
         :param tokens: text sequences [batch_size x src_seq_len]
         :param lengths: source lengths [batch_size]
@@ -185,8 +185,11 @@ class Classifier(pl.LightningModule):
         # from the entire original batch
         mask = lengths_to_mask(lengths, device=tokens.device)
 
-        # Run BERT model.
-        word_embeddings = self.bert(tokens, attention_mask=mask,trans_layer=9)[0]
+        if train:
+            # Run BERT model.
+            word_embeddings = self.bert(tokens, attention_mask=mask,trans_layer=9, train=True)[0]
+        else:
+            word_embeddings = self.bert(tokens, attention_mask=mask,trans_layer=9, train=False)[0]
 
         # Average Pooling
         word_embeddings = mask_fill(
@@ -268,7 +271,7 @@ class Classifier(pl.LightningModule):
             - dictionary passed to the validation_end function.
         """
         inputs, targets = batch
-        model_out = self.forward(**inputs)
+        model_out = self.forward(**inputs, train=False)
         loss_val = self.loss(model_out, targets)
 
         y = targets["labels"]
